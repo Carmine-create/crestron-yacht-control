@@ -1,0 +1,174 @@
+cat > index.html << 'EOF'
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Yacht Control - Crestron CH5</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: linear-gradient(135deg, #1e3c72, #2a5298); color: white; padding: 20px; margin: 0; min-height: 100vh; }
+        .container { max-width: 800px; margin: 0 auto; }
+        h1 { text-align: center; margin-bottom: 10px; font-size: 1.8rem; }
+        h3 { text-align: center; margin-bottom: 30px; opacity: 0.9; font-weight: normal; }
+        .card { background: rgba(255,255,255,0.1); border-radius: 20px; padding: 20px; margin-bottom: 20px; backdrop-filter: blur(10px); }
+        .card h2 { margin-top: 0; border-bottom: 2px solid #00aaff; display: inline-block; padding-bottom: 5px; margin-bottom: 15px; }
+        .button-group { display: flex; gap: 15px; flex-wrap: wrap; margin-top: 15px; }
+        button { background: #2c3e66; border: none; color: white; padding: 12px 24px; border-radius: 10px; font-size: 16px; cursor: pointer; transition: all 0.3s ease; flex: 1; min-width: 100px; }
+        button:hover { background: #00aaff; transform: scale(1.02); }
+        .status { margin-top: 15px; padding: 10px; background: rgba(0,0,0,0.5); border-radius: 8px; font-family: monospace; font-size: 14px; }
+        .log { margin-top: 20px; background: rgba(0,0,0,0.7); border-radius: 10px; padding: 15px; max-height: 200px; overflow-y: auto; font-family: monospace; font-size: 12px; }
+        .log p { margin: 5px 0; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>⚓ YACHT CONTROL SYSTEM</h1>
+        <h3>Crestron CH5 Demo - Carmine</h3>
+        
+        <div class="card">
+            <h2>📐 TENDE MOTORIZZATE</h2>
+            <div class="button-group">
+                <button id="tendaSu">▲ TENDA SU</button>
+                <button id="tendaGiu">▼ TENDA GIÙ</button>
+                <button id="tendaStop">⏹️ STOP</button>
+            </div>
+            <div class="status" id="tendaStatus">Stato tenda: FERMA</div>
+        </div>
+        
+        <div class="card">
+            <h2>📺 TV MOTORIZZATA</h2>
+            <div class="button-group">
+                <button id="tvOn">🖥️ TV ON</button>
+                <button id="tvOff">⭕ TV OFF</button>
+                <button id="tvUp">⬆️ TV SU</button>
+                <button id="tvDown">⬇️ TV GIÙ</button>
+            </div>
+            <div class="status" id="tvStatus">Stato TV: SPENTA</div>
+        </div>
+        
+        <div class="card">
+            <h2>💡 LUCI SCENA</h2>
+            <div class="button-group">
+                <button id="luciOn">🔆 LUCI ON</button>
+                <button id="luciOff">🌙 LUCI OFF</button>
+                <button id="luciDim">✨ LUCI 50%</button>
+            </div>
+            <div class="status" id="luciStatus">Stato luci: SPENTE</div>
+        </div>
+        
+        <div class="card">
+            <h2>📋 LOG AZIONI</h2>
+            <div class="log" id="logPanel">
+                <p>🟢 Sistema pronto. In attesa comandi...</p>
+            </div>
+        </div>
+    </div>
+    <script>
+        let tendaState = 'STOP';
+        const tendaStatus = document.getElementById('tendaStatus');
+        const tvStatus = document.getElementById('tvStatus');
+        const luciStatus = document.getElementById('luciStatus');
+        const logPanel = document.getElementById('logPanel');
+        
+        function addLog(msg, type = 'info') {
+            const p = document.createElement('p');
+            const timestamp = new Date().toLocaleTimeString();
+            const icon = type === 'command' ? '🎮' : type === 'success' ? '✅' : '🔵';
+            p.innerHTML = `[${timestamp}] ${icon} ${msg}`;
+            logPanel.appendChild(p);
+            logPanel.scrollTop = logPanel.scrollHeight;
+            while(logPanel.children.length > 40) logPanel.removeChild(logPanel.firstChild);
+        }
+        
+        document.getElementById('tendaSu').onclick = () => {
+            addLog('Digital Join: TENDA_SU', 'command');
+            tendaState = 'SALITA';
+            tendaStatus.innerHTML = 'Stato tenda: ⬆️ IN SALITA';
+            addLog('IR: Comando MOTORE_SU inviato a TENDE', 'success');
+            setTimeout(() => { 
+                if(tendaState === 'SALITA') { 
+                    tendaState = 'SU'; 
+                    tendaStatus.innerHTML = 'Stato tenda: ✅ APERTA'; 
+                    addLog('Feedback: Tenda completamente APERTA', 'success'); 
+                } 
+            }, 3000);
+        };
+        
+        document.getElementById('tendaGiu').onclick = () => {
+            addLog('Digital Join: TENDA_GIU', 'command');
+            tendaState = 'DISCESA';
+            tendaStatus.innerHTML = 'Stato tenda: ⬇️ IN DISCESA';
+            addLog('IR: Comando MOTORE_GIU inviato a TENDE', 'success');
+            setTimeout(() => { 
+                if(tendaState === 'DISCESA') { 
+                    tendaState = 'GIU'; 
+                    tendaStatus.innerHTML = 'Stato tenda: ✅ CHIUSA'; 
+                    addLog('Feedback: Tenda completamente CHIUSA', 'success'); 
+                } 
+            }, 3000);
+        };
+        
+        document.getElementById('tendaStop').onclick = () => {
+            addLog('Digital Join: TENDA_STOP', 'command');
+            tendaState = 'STOP';
+            tendaStatus.innerHTML = 'Stato tenda: ⏹️ FERMA';
+            addLog('IR: Comando MOTORE_STOP inviato a TENDE', 'success');
+        };
+        
+        document.getElementById('tvOn').onclick = () => {
+            addLog('Digital Join: TV_ON', 'command');
+            addLog('IR: Power On - Segnale IR inviato a TV', 'success');
+            tvStatus.innerHTML = 'Stato TV: 🟢 ACCESA';
+        };
+        
+        document.getElementById('tvOff').onclick = () => {
+            addLog('Digital Join: TV_OFF', 'command');
+            addLog('IR: Power Off - Segnale IR inviato a TV', 'success');
+            tvStatus.innerHTML = 'Stato TV: 🔴 SPENTA';
+        };
+        
+        document.getElementById('tvUp').onclick = () => {
+            addLog('Digital Join: TV_MOBILE_SU', 'command');
+            tvStatus.innerHTML = 'Stato TV: ⬆️ MOBILE IN SALITA';
+            addLog('IR: Comando MOTORE_SU inviato a TV MOBILE', 'success');
+            setTimeout(() => { 
+                tvStatus.innerHTML = 'Stato TV: ✅ MOBILE ALZATO'; 
+                addLog('Feedback: TV mobile completamente alzato', 'success');
+            }, 4000);
+        };
+        
+        document.getElementById('tvDown').onclick = () => {
+            addLog('Digital Join: TV_MOBILE_GIU', 'command');
+            tvStatus.innerHTML = 'Stato TV: ⬇️ MOBILE IN DISCESA';
+            addLog('IR: Comando MOTORE_GIU inviato a TV MOBILE', 'success');
+            setTimeout(() => { 
+                tvStatus.innerHTML = 'Stato TV: ✅ MOBILE ABBASSATO'; 
+                addLog('Feedback: TV mobile completamente abbassato', 'success');
+            }, 4000);
+        };
+        
+        document.getElementById('luciOn').onclick = () => {
+            addLog('Digital Join: LUCI_ON', 'command');
+            addLog('Serial: DIMMER 100% - Comando inviato a Luci Scena', 'success');
+            luciStatus.innerHTML = 'Stato luci: 💡 ACCESE (100%)';
+        };
+        
+        document.getElementById('luciOff').onclick = () => {
+            addLog('Digital Join: LUCI_OFF', 'command');
+            addLog('Serial: DIMMER 0% - Comando inviato a Luci Scena', 'success');
+            luciStatus.innerHTML = 'Stato luci: 🌙 SPENTE';
+        };
+        
+        document.getElementById('luciDim').onclick = () => {
+            addLog('Digital Join: LUCI_DIM', 'command');
+            addLog('Serial: DIMMER 50% - Modalità Atmosfera', 'success');
+            luciStatus.innerHTML = 'Stato luci: ✨ ATMOSFERA 50%';
+        };
+        
+        addLog('🚀 CH5 Interface loaded. Digital Joins ready.', 'success');
+        addLog('💡 Demo: Ogni bottone simula comandi IR/Serial reali', 'info');
+    </script>
+</body>
+</html>
+EOF
